@@ -1,0 +1,3 @@
+[submodule "lbryum-server"]
+	path = lbryum-server/lbryum-server
+	url = git@github.com:lbryio/lbryum-server.git
