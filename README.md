@@ -8,11 +8,16 @@ publishing or metadata won't propogate out to rest of the
 network. Additionally, extra blocks can be mined on demand so there is
 no need to wait for claims or transactions to propogate.
 
+## Prerequesites 
+
+- Install [docker](https://docs.docker.com/engine/installation/)
+- Install [docker-compose](https://github.com/docker/compose/releases)
+
 ## Usage
 
-This is configured using docker-compose, so the containers can be launched using.
-
- `docker compose up`
+    git clone --recursive git@github.com:lbryio/lbry-in-a-box.git
+    cd lbry-in-a-box
+    docker-compose up
 
 To initialize the blockchain run:
 
