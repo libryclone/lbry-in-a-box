@@ -8,7 +8,7 @@ publishing or metadata won't propogate out to rest of the
 network. Additionally, extra blocks can be mined on demand so there is
 no need to wait for claims or transactions to propogate.
 
-## Prerequesites 
+## Prerequisites 
 
 - Install [docker](https://docs.docker.com/engine/installation/)
 - Install [docker-compose](https://github.com/docker/compose/releases)
