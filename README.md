@@ -19,7 +19,7 @@ no need to wait for claims or transactions to propogate.
     cd lbry-in-a-box
     docker-compose up
 
-To initialize the blockchain run:
+To initialize the blockchain, run:
 
  ```
  ./lbrycrd-cli -rpcconnect=127.0.0.1 -rpcport=19001 -rpcuser=rpcuser \
