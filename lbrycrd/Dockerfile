@@ -2,7 +2,8 @@ FROM ubuntu:14.04
 MAINTAINER jobevers@lbry.io
 
 ADD lbrycrdd /usr/local/bin/lbrycrdd
-ADD lbrycrd.conf /data/lbrycrd/lbrycrd.conf
+# contains 150 blocks, used to bootstrap the network
+ADD data /data
 
 VOLUME /data
 EXPOSE 19000 19001
