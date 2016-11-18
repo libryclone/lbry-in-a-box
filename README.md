@@ -19,18 +19,11 @@ no need to wait for claims or transactions to propogate.
     cd lbry-in-a-box
     docker-compose up
 
-To initialize the blockchain, run:
-
- ```
- ./lbrycrd-cli -rpcconnect=127.0.0.1 -rpcport=19001 -rpcuser=rpcuser \
-    -rpcpassword=jhopfpusrx -regtest=1 generate 150
- ```
-
-The lbrynet daemon can now connect to your local lbryum server.  It
-needs to be properly configured, which requires some code changes to allow
-for that to happen (lbryum has been difficult to work with). This section
-should be updated after those code changes happen.
-
+After waiting for everything to boot up, you can open your browser
+and go to http://localhost:5279 and the typical LBRY ui should
+load.  Lighthouse is not yet a part of `lbry-in-a-box` so the UI
+is using the production version of that - so you will see content
+that is on the main blockchain, not regtest.
 
 ## Container Configuration
 
