@@ -1,3 +1,9 @@
 [submodule "lbryum-server"]
 	path = lbryum-server/lbryum-server
 	url = https://github.com/lbryio/lbryum-server.git
+[submodule "lbry"]
+	path = lbrynet/lbry
+	url = https://github.com/lbryio/lbry.git
+[submodule "lbrynet/lbryum"]
+	path = lbrynet/lbryum
+	url = https://github.com/lbryio/lbryum.git
