@@ -25,6 +25,21 @@ LBRY ui should load.  Lighthouse is not yet a part of `lbry-in-a-box` so
 the UI is using the production version of that - so you will see content
 that is on the main blockchain, not regtest.
 
+## Credits and Mining
+
+To send yourself some credits, grab an address from your wallet and use
+`lbrycrd-cli` to send the credits.
+
+    ./lbrycrd-cli -rpcconnect=127.0.0.1 -rpcport=19001 -rpcuser=rpcuser \
+        -rpcpassword=jhopfpusrx -regtest=1 \
+        sendtoaddress <your-address> 10
+
+In order for the credits to show up, you'll need six confirmations. 
+The regtest network is mined on demand so run something like:
+
+    ./lbrycrd-cli -rpcconnect=127.0.0.1 -rpcport=19001 -rpcuser=rpcuser \
+        -rpcpassword=jhopfpusrx -regtest=1 generate 10
+
 ## Container Configuration
 
 Docker is very flexible in its ability to mount files and directories.
