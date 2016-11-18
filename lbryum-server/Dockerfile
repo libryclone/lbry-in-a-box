@@ -10,19 +10,18 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get -q update \
  && rm -rf /var/lib/apt/lists/* \
  && pip install -qr /tmp/requirements.txt 
 
-ADD lbrycrdd /usr/local/bin/lbrycrdd
-ADD lbrycrd.conf /data/lbrycrd/lbrycrd.conf
-
 ADD lbryum-server /code/lbryum-server
-ADD lbryum.conf /etc/lbryum.conf
-
 # this symlink is required so that lbryum-server can run in editable mode.
 # Running in editable mode allows you to volume mount the source code,
 # make changes and restart just the lbryum-server without having to rebuild
 # the container.
 RUN ln -s /code/lbryum-server/src/ /code/lbryum-server/lbryumserver \
  && pip install -e /code/lbryum-server/ \
- && mkdir /data/log && mkdir /data/lbryum-db && chown -R lbryum:lbryum /data
+ && mkdir -p /data/log && mkdir /data/lbryum-db && chown -R lbryum:lbryum /data
+
+ADD lbrycrdd /usr/local/bin/lbrycrdd
+ADD lbrycrd.conf /data/lbrycrd/lbrycrd.conf
+ADD lbryum.conf /etc/lbryum.conf
 
 VOLUME /data
 # the port that lbryum clients connect to.
@@ -32,7 +31,6 @@ EXPOSE 50001
 # process management to this, but this works for now.
 ADD run.sh /usr/local/bin/run.sh
 CMD ["/usr/local/bin/run.sh"]
-
 
 
 
