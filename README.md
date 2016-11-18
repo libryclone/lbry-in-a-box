@@ -20,9 +20,9 @@ no need to wait for claims or transactions to propogate.
     docker-compose up
 
 After waiting for everything to boot up, you can open your browser
-and go to http://localhost:5279 and the typical LBRY ui should
-load.  Lighthouse is not yet a part of `lbry-in-a-box` so the UI
-is using the production version of that - so you will see content
+and go to [http://localhost:5279](http://localhost:5279) and the typical 
+LBRY ui should load.  Lighthouse is not yet a part of `lbry-in-a-box` so
+the UI is using the production version of that - so you will see content
 that is on the main blockchain, not regtest.
 
 ## Container Configuration
