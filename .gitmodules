@@ -7,3 +7,6 @@
 [submodule "lbrynet/lbryum"]
 	path = lbrynet/lbryum
 	url = https://github.com/lbryio/lbryum.git
+[submodule "lighthouse/lighthouse"]
+	path = lighthouse/lighthouse
+	url = https://github.com/lbryio/lighthouse.git
