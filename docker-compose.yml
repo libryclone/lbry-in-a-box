@@ -79,3 +79,14 @@ services:
       - 8003
     networks:
       - lbry
+
+  lighthouse:
+    build: ./lighthouse
+    expose:
+      # lighthouse needs the dht
+      - 3333
+      - 4444
+      # where the search queries go
+      - 50005
+    networks:
+      - lbry

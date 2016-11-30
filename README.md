@@ -15,9 +15,23 @@ no need to wait for claims or transactions to propogate.
 
 ## Usage
 
+Clone the repo
+
     git clone --recursive git@github.com:lbryio/lbry-in-a-box.git
     cd lbry-in-a-box
+
+Build the UI (need to have node installed). This part is awkward, and will
+hopefully be improved in the future.
+
+    cd lbrynet/lbry-web-ui
+    npm install
+    webpack --progress --colors
+
+Launch the cluster
+
+    cd ../..
     docker-compose up
+
 
 After waiting for everything to boot up, you can open your browser
 and go to [http://localhost:5279](http://localhost:5279) and the typical 
@@ -50,4 +64,7 @@ pre-populated into the containers.
 
 Check the Dockerfile and README files for each container for more information.
 
+## Note about submodules
+
+(Note what repos have had config changes)
 

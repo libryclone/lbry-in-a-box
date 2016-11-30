@@ -10,3 +10,6 @@
 [submodule "lighthouse/lighthouse"]
 	path = lighthouse/lighthouse
 	url = https://github.com/lbryio/lighthouse.git
+[submodule "lbrynet/lbry-web-ui"]
+	path = lbrynet/lbry-web-ui
+	url = https://github.com/lbryio/lbry-web-ui.git

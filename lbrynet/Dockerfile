@@ -22,7 +22,6 @@ RUN /app/bin/pip install /src/lbry
 RUN mkdir -p /data /data/lbryum /data/lbrynet \
  && mkdir -p /home/lbry/.lbrynet
 
-
 VOLUME /data
 ADD data /data
 # this is temporary; eventually all
@@ -48,7 +47,7 @@ ENV LBRY_LBRYUM_WALLET_DIR=/data/lbryum \
 
 EXPOSE 3333 4444 5279 5566
 
-CMD ["/app/bin/python", "/app/bin/lbrynet-daemon", "--log-to-console", "--no-launch", "--verbose"]
+CMD ["/app/bin/python", "/app/bin/lbrynet-daemon", "--log-to-console", "--no-launch", "--verbose", "--ui", "/data/ui"]
 
 
 
