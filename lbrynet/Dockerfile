@@ -24,6 +24,7 @@ RUN mkdir -p /data /data/lbryum /data/lbrynet \
 
 VOLUME /data
 ADD data /data
+ADD lbry-web-ui/dist /data/ui
 # this is temporary; eventually all
 # lbrynet data should go in /data/lbrynet
 VOLUME /home/lbry/.lbrynet
