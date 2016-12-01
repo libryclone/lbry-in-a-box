@@ -86,7 +86,10 @@ services:
       # lighthouse needs the dht
       - 3333
       - 4444
+    ports:
       # where the search queries go
-      - 50005
+      # this needs to be accessible on localhost
+      # because that is the network the UI knows about
+      - 50005:50005
     networks:
       - lbry
