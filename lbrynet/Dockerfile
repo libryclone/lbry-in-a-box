@@ -24,7 +24,6 @@ RUN mkdir -p /data /data/lbryum /data/lbrynet \
 
 VOLUME /data
 ADD data /data
-ADD lbry-web-ui/dist /data/ui
 # this is temporary; eventually all
 # lbrynet data should go in /data/lbrynet
 VOLUME /home/lbry/.lbrynet
@@ -48,7 +47,8 @@ ENV LBRY_LBRYUM_WALLET_DIR=/data/lbryum \
 
 EXPOSE 3333 4444 5279 5566
 
-CMD ["/app/bin/python", "/app/bin/lbrynet-daemon", "--log-to-console", "--no-launch", "--verbose", "--ui", "/data/ui"]
+# TODO: create a way to disable the UI
+CMD ["/app/bin/python", "/app/bin/lbrynet-daemon", "--log-to-console", "--no-launch", "--verbose"]
 
 
 

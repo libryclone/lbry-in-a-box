@@ -64,6 +64,7 @@ services:
     environment:
       # want to be able to access this from the host
       - LBRY_API_INTERFACE=0.0.0.0
+      - LBRY_ALLOWED_ORIGIN=http://localhost:5280
     ports:
       # the ui and the api port
       - 5279:5279
