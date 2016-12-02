@@ -4,9 +4,10 @@ version: '2'
 services:
   lbrycrd:
     build: ./lbrycrd
-    ports:
+    expose:
       # lbrycrd port
-      - 19000:19000
+      - 19000
+    ports:
       # rpcport
       - 19001:19001
 
