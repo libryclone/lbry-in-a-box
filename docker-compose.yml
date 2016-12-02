@@ -1,8 +1,5 @@
 version: '2'
 
-networks:
-  lbry:
-    driver: bridge
 
 services:
   lbrycrd:
@@ -12,8 +9,6 @@ services:
       - 19000:19000
       # rpcport
       - 19001:19001
-    networks:
-      - lbry
 
   lbryum-server:
     build: ./lbryum-server
@@ -25,8 +20,6 @@ services:
       - 50001:50001
     depends_on:
       - lbrycrd
-    networks:
-      - lbry
 
   dht:
     build: ./lbrynet
@@ -36,8 +29,6 @@ services:
     expose:
       - 3333
       - 4444
-    networks:
-      - lbry
       
   reflector:
     build: ./lbrynet
@@ -51,8 +42,6 @@ services:
       - 3333
       - 4444
       - 5566
-    networks:
-      - lbry
       
   lbrynet:
     build: ./lbrynet
@@ -71,15 +60,11 @@ services:
     expose:
       - 3333
       - 4444
-    networks:
-      - lbry
 
   fake-bittrex:
     build: ./fake-bittrex
     expose:
       - 8003
-    networks:
-      - lbry
 
   lighthouse:
     build: ./lighthouse
@@ -92,5 +77,3 @@ services:
       # this needs to be accessible on localhost
       # because that is the network the UI knows about
       - 50005:50005
-    networks:
-      - lbry
