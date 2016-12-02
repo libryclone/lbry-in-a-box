@@ -53,9 +53,9 @@ already, with the credits in the wallet available on localhost:19001.
 
 To send the lbrynet instance 10 credits, run:
 
-   ./lbrycrd-cli -rpcconnect=127.0.0.1 -rpcport=19001 -rpcuser=rpcuser \
-      -rpcpassword=jhopfpusrx -regtest=1  \
-      sendtoaddress `lbrynet-cli get_new_address | tr -d '"'` 10
+    ./lbrycrd-cli -rpcconnect=127.0.0.1 -rpcport=19001 -rpcuser=rpcuser \
+       -rpcpassword=jhopfpusrx -regtest=1  \
+       sendtoaddress `lbrynet-cli get_new_address | tr -d '"'` 10
 
 
 In order for the credits to show up, you'll need six confirmations. 
