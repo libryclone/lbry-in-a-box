@@ -34,12 +34,12 @@ The external services can be found by looking at the `ports` listing in the
 In order to use the UI, there is some more steps to do. The lbry-in-a-box
 branch contains patches needed to get the UI to work.  Do something like:
 
-   git clone git@github.com:lbryio/lbry-web-ui.git
-   git checkout lbry-in-a-box
-   npm install
-   ./node_modules/.bin/node-sass --output dist/css --sourcemap=none scss/
-   ./node_modules/.bin/webpack-dev-server --progress --colors \
-       --port=5280 --content-base=dist
+    git clone git@github.com:lbryio/lbry-web-ui.git
+    git checkout lbry-in-a-box
+    npm install
+    ./node_modules/.bin/node-sass --output dist/css --sourcemap=none scss/
+    ./node_modules/.bin/webpack-dev-server --progress --colors \
+        --port=5280 --content-base=dist
 
 Then, open http://localhost:5280 and you should see the usual UI.
 The discover page will be busted because none of the hard-coded names
