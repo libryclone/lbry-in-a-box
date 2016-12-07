@@ -61,6 +61,9 @@ services:
     expose:
       - 3333
       - 4444
+    volumes:
+      - /Users/johnrobison/lbryschema:/src/lbryschema
+      - /Users/johnrobison/lbry:/src/lbry
 
   fake-bittrex:
     build: ./fake-bittrex

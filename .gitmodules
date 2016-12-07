@@ -13,3 +13,9 @@
 [submodule "lighthouse/lighthouse"]
 	path = lighthouse/lighthouse
 	url = https://github.com/lbryio/lighthouse.git
+[submodule "lbryschema"]
+	path = lbryschema
+	url = https://github.com/lbryio/lbryschema.git
+[submodule "lbrynet/lbryschema"]
+	path = lbrynet/lbryschema
+	url = https://github.com/lbryio/lbryschema.git

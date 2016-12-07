@@ -16,8 +16,11 @@ ADD lbryum /src/lbryum
 RUN /app/bin/pip install -U /src/lbryum
 
 # build the app from source
+ADD lbryschema /src/lbryschema
+RUN /app/bin/pip install /src/lbryschema
+
 ADD lbry/ /src/lbry
-RUN /app/bin/pip install /src/lbry
+RUN /app/bin/pip install -e /src/lbry
 
 RUN mkdir -p /data /data/lbryum /data/lbrynet \
  && mkdir -p /home/lbry/.lbrynet
