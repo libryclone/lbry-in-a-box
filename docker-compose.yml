@@ -73,6 +73,7 @@ services:
       # lighthouse needs the dht
       - 3333
       - 4444
+      - 5567
     ports:
       # where the search queries go
       # this needs to be accessible on localhost
