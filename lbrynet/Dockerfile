@@ -28,6 +28,8 @@ ADD data /data
 # lbrynet data should go in /data/lbrynet
 VOLUME /home/lbry/.lbrynet
 
+# lbrynet uses this as download folder
+RUN mkdir /root/Downloads
 
 # until Docker fixes the ability to change
 # the ownership of ADDed files, we have
