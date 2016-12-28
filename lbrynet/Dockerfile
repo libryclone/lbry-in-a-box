@@ -19,7 +19,7 @@ RUN /app/bin/pip install -U /src/lbryum
 ADD lbry/ /src/lbry
 RUN /app/bin/pip install /src/lbry
 
-RUN mkdir -p /data /data/lbryum /data/lbrynet \
+RUN mkdir -p /data /data/lbryum /data/lbrynet /data/Downloads \
  && mkdir -p /home/lbry/.lbrynet
 
 VOLUME /data
@@ -27,7 +27,6 @@ ADD data /data
 # this is temporary; eventually all
 # lbrynet data should go in /data/lbrynet
 VOLUME /home/lbry/.lbrynet
-
 
 # until Docker fixes the ability to change
 # the ownership of ADDed files, we have
@@ -40,15 +39,15 @@ ENV LBRY_USE_UPNP=false
 
 ENV LBRY_LBRYUM_WALLET_DIR=/data/lbryum \
  LBRY_DATA_DIR=/data/lbrynet \
- LBRY_DOWNLOAD_DIR=/data/downloads \
- LBRY_DEFAULT_DHT_NODES=dht:3333 \
+ LBRY_DOWNLOAD_DIRECTORY=/data/Downloads \
  LBRY_BITTREX_FEED=http://fake-bittrex:8003/data \
  LBRY_REFLECTOR_SERVERS=reflector:5566
 
 EXPOSE 3333 4444 5279 5566
 
+ADD run.sh /app/bin/run.sh
 # TODO: create a way to disable the UI
-CMD ["/app/bin/python", "/app/bin/lbrynet-daemon", "--log-to-console", "--no-launch", "--verbose"]
+CMD ["/app/bin/run.sh"]
 
 
 
