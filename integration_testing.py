@@ -10,7 +10,6 @@ and than run integration testing
 import unittest
 import subprocess
 import time
-
 from bitcoinrpc.authproxy import AuthServiceProxy
 from jsonrpc.proxy import JSONRPCProxy
 
@@ -26,7 +25,20 @@ lbrynets={}
 lbrynets['lbrynet'] = JSONRPCProxy.from_url("http://localhost:{}/lbryapi".format(lbrynet_rpc_port))
 lbrynets['dht'] = JSONRPCProxy.from_url("http://localhost:{}/lbryapi".format(dht_rpc_port))
 lbrynets['reflector'] = JSONRPCProxy.from_url("http://localhost:{}/lbryapi".format(reflector_rpc_port))
-DOCKER_LOG_FILE='tmp.log' 
+
+test_metadata = {
+    'license': 'NASA',
+    'ver': '0.0.3',
+    'description': 'test',
+    'language': 'en',
+    'author': 'test',
+    'title': 'test',
+    'nsfw': False,
+    'content_type': 'video/mp4',
+    'thumbnail': 'test'
+}
+
+DOCKER_LOG_FILE='tmp.log'
 
 
 def shell_command(command):
@@ -35,12 +47,12 @@ def shell_command(command):
     return out,err
 
 
-def call_lbrycrd(method,*params):
+def call_lbrycrd(method, *params):
     lbrycrd = AuthServiceProxy("http://{}:{}@{}:{}".format(lbrycrd_rpc_user,lbrycrd_rpc_pw,
                                                             lbrycrd_rpc_ip,lbrycrd_rpc_port))
     return getattr(lbrycrd,method)(*params)
 
-#wrapper function just to see where we are in the test
+# wrapper function just to see where we are in the test
 def print_func(func):
     def wrapper(*args,**kwargs):
         print("Running:{}".format(func.func_name))
@@ -50,13 +62,17 @@ def print_func(func):
 class LbrynetTest(unittest.TestCase):
 
     def test_lbrynet(self):
+        start_time = time.time()
         self._test_lbrynet_startup()
         self._test_recv_and_send()
-        self._test_publish('testname')
-        self._test_publish('testname2',1)
+        # test publish and download of free content
+        self._test_publish('testname',1,)
+        # test publish and download of non free content
+        self._test_publish('testname2',1,1)
         print("Printing ERRORS found in log:")
-        out,err=shell_command('grep ERROR {}'.format(DOCKER_LOG_FILE))
+        out,err = shell_command('grep ERROR {}'.format(DOCKER_LOG_FILE))
         print out
+        print("Total time taken for test:{}".format(time.time()-start_time))
 
     def _increment_blocks(self, num_blocks):
         LBRYNET_BLOCK_SYNC_TIMEOUT = 60
@@ -74,7 +90,7 @@ class LbrynetTest(unittest.TestCase):
         while time.time() - start_time < LBRYNET_BLOCK_SYNC_TIMEOUT:
             if all([lbrynet.get_best_blockhash() == best_block_hash for lbrynet in lbrynets.values()]):
                 return
-            time.sleep(0.01)
+            time.sleep(0.1)
         self.fail('Lbrynet block sync timed out')
 
     def _is_txid(self, txid):
@@ -93,7 +109,7 @@ class LbrynetTest(unittest.TestCase):
         self.fail('Lbrynet failed to sync balance in time')
 
     def _wait_for_lbrynet_sync(self):
-        time.sleep(20)
+        time.sleep(30)
 
     # send amount from lbrycrd to lbrynet instance
     def _send_from_lbrycrd(self, amount, to_lbrynet):
@@ -108,6 +124,7 @@ class LbrynetTest(unittest.TestCase):
 
 
     def _check_lbrynet_init(self,lbrynet):
+
         if lbrynet.is_running():
             self.assertEqual(0,lbrynet.get_balance())
             self.assertEqual(True,lbrynet.is_first_run())
@@ -118,11 +135,20 @@ class LbrynetTest(unittest.TestCase):
     @print_func
     def _test_lbrynet_startup(self):
         LBRYNET_STARTUP_TIMEOUT = 60
+
+        # Make sure to rebuild docker instances
+        out,err=shell_command('docker-compose down')
+        out,err=shell_command('docker-compose rm -f')
+        out,err=shell_command('docker-compose build')
+        out,err=shell_command('docker-compose up > {}&'.format(DOCKER_LOG_FILE))
+
+        #wait for startup, TODO: should detect connection here
+        time.sleep(60)
         start_time = time.time()
         while time.time() - start_time < LBRYNET_STARTUP_TIMEOUT:
             if all([self._check_lbrynet_init(lbrynet) for lbrynet in lbrynets.values()]):
                 return
-            time.sleep(0.01)
+            time.sleep(0.1)
 
         self.fail('Lbrynet failed to start up')
 
@@ -149,28 +175,17 @@ class LbrynetTest(unittest.TestCase):
 
     # test publishing from lbrynet, and test to see if we can download from dht
     @print_func
-    def _test_publish(self,claim_name,key_fee = 0):
-        CLAIM_AMOUNT = 1
+    def _test_publish(self, claim_name, claim_amount, key_fee = 0):
+        claim_amount = 1
         # make sure we have enough to claim the amount
         out = lbrynets['lbrynet'].get_balance()
-        self.assertTrue(out >= CLAIM_AMOUNT)
+        self.assertTrue(out >= claim_amount)
 
-        test_metadata = {
-            'license': 'NASA',
-            'ver': '0.0.3',
-            'description': 'test',
-            'language': 'en',
-            'author': 'test',
-            'title': 'test',
-            'nsfw': False,
-            'content_type': 'video/mp4',
-            'thumbnail': 'test'
-        }
         if key_fee != 0:
             key_fee_address = lbrynets['lbrynet'].get_new_address()
             test_metadata["fee"]= {'LBC': {"address": key_fee_address, "amount": key_fee}}
 
-        out = lbrynets['lbrynet'].publish({'name':claim_name,'file_path':'/src/lbry/FAQ.md','bid':CLAIM_AMOUNT,'metadata':test_metadata})
+        out = lbrynets['lbrynet'].publish({'name':claim_name,'file_path':'/src/lbry/FAQ.md','bid':claim_amount,'metadata':test_metadata})
         publish_txid = out['txid']
         publish_nout = out['nout']
         self._is_txid(publish_txid)
@@ -183,8 +198,8 @@ class LbrynetTest(unittest.TestCase):
 
         # check lbrycrd claim state is updated
         out = call_lbrycrd('getvalueforname',claim_name)
-        self.assertEqual(out['amount'],CLAIM_AMOUNT*100000000)
-        self.assertEqual(out['effective amount'],CLAIM_AMOUNT*100000000)
+        self.assertEqual(out['amount'],claim_amount*100000000)
+        self.assertEqual(out['effective amount'],claim_amount*100000000)
         self.assertEqual(out['txid'],publish_txid)
         self.assertEqual(out['n'],publish_nout)
 
@@ -193,15 +208,20 @@ class LbrynetTest(unittest.TestCase):
         self.assertEqual(claim_name, out['name'])
         self.assertEqual(publish_txid, out['txid'])
         self.assertEqual(publish_nout, out['nout'])
-        self.assertEqual(CLAIM_AMOUNT, out['amount'])
+        self.assertEqual(claim_amount, out['amount'])
         self.assertEqual([],out['supports'])
 
         sd_hash = out['value']['sources']['lbry_sd_hash']
 
+        out = lbrynets['lbrynet'].get_my_claim({'name':claim_name})
+        self.assertTrue(isinstance(out,dict))
+        self.assertEqual(claim_name,out['name'])
+        self.assertEqual(claim_amount,out['amount'])
+
         # test download of own file
-        out = lbrynets['lbrynet'].get({'name':claim_name})
-        self.assertEqual('/data/Downloads/FAQ.md',out['path'])
-        self.assertEqual(sd_hash, out['stream_hash'])
+        #out = lbrynets['lbrynet'].get({'name':claim_name})
+        #self.assertEqual('/data/Downloads/FAQ.md',out['path'])
+        #self.assertEqual(sd_hash, out['stream_hash'])
 
         # check to see if we can access sd_hash
         out = lbrynets['lbrynet'].download_descriptor({'sd_hash':sd_hash})
@@ -247,6 +267,8 @@ class LbrynetTest(unittest.TestCase):
 
         # TODO: we should log into the dht docker instance and check for file presense and diff it against original
 
+
+
 if __name__ == '__main__':
     # Make sure to rebuild docker instances
     out,err=shell_command('docker-compose down')
@@ -254,10 +276,7 @@ if __name__ == '__main__':
     out,err=shell_command('docker-compose build')
 
     out,err=shell_command('docker-compose up > {}&'.format(DOCKER_LOG_FILE))
-    # Wait for docker containter start up
-    # TODO: we should retry connections until they can be reached here
-    # instead of sleeping
-    time.sleep(60)
+ 
     unittest.main()
 
 
