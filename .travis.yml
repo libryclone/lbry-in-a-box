@@ -1,0 +1,11 @@
+sudo: required
+dist: trusty
+language: generic
+
+services:
+  - docker
+
+script:
+  - python integration_testing.py
+  - sync_to_master.sh
+
