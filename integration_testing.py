@@ -69,6 +69,8 @@ class LbrynetTest(unittest.TestCase):
         self._test_publish('testname',1,)
         # test publish and download of non free content
         self._test_publish('testname2',1,1)
+
+        # TODO: should try to remove all errors here, raise error if found
         print("Printing ERRORS found in log:")
         out,err = shell_command('grep ERROR {}'.format(DOCKER_LOG_FILE))
         print out
@@ -109,7 +111,7 @@ class LbrynetTest(unittest.TestCase):
         self.fail('Lbrynet failed to sync balance in time')
 
     def _wait_for_lbrynet_sync(self):
-        time.sleep(30)
+        time.sleep(40)
 
     # send amount from lbrycrd to lbrynet instance
     def _send_from_lbrycrd(self, amount, to_lbrynet):
@@ -124,7 +126,6 @@ class LbrynetTest(unittest.TestCase):
 
 
     def _check_lbrynet_init(self,lbrynet):
-
         if lbrynet.is_running():
             self.assertEqual(0,lbrynet.get_balance())
             self.assertEqual(True,lbrynet.is_first_run())
@@ -135,15 +136,15 @@ class LbrynetTest(unittest.TestCase):
     @print_func
     def _test_lbrynet_startup(self):
         LBRYNET_STARTUP_TIMEOUT = 60
-
         # Make sure to rebuild docker instances
+          
         out,err=shell_command('docker-compose down')
         out,err=shell_command('docker-compose rm -f')
         out,err=shell_command('docker-compose build')
         out,err=shell_command('docker-compose up > {}&'.format(DOCKER_LOG_FILE))
-
         #wait for startup, TODO: should detect connection here
-        time.sleep(60)
+        time.sleep(120)
+      
         start_time = time.time()
         while time.time() - start_time < LBRYNET_STARTUP_TIMEOUT:
             if all([self._check_lbrynet_init(lbrynet) for lbrynet in lbrynets.values()]):
@@ -169,6 +170,8 @@ class LbrynetTest(unittest.TestCase):
         self.assertEqual(out,True)
         self._wait_for_lbrynet_sync()
         self._increment_blocks(6)
+        # TODO: this fails sometimes if _wait_for_lbrynet_sync is not sufficiently long enough..
+        #    need to find better solution 
         out = call_lbrycrd('getbalance', 'test')
         self.assertEqual(SEND_AMOUNT, out)
 
@@ -185,6 +188,7 @@ class LbrynetTest(unittest.TestCase):
             key_fee_address = lbrynets['lbrynet'].get_new_address()
             test_metadata["fee"]= {'LBC': {"address": key_fee_address, "amount": key_fee}}
 
+        #TODO make a custom file to be downloaded/published , instead of using the FAQ page 
         out = lbrynets['lbrynet'].publish({'name':claim_name,'file_path':'/src/lbry/FAQ.md','bid':claim_amount,'metadata':test_metadata})
         publish_txid = out['txid']
         publish_nout = out['nout']
@@ -219,9 +223,9 @@ class LbrynetTest(unittest.TestCase):
         self.assertEqual(claim_amount,out['amount'])
 
         # test download of own file
-        #out = lbrynets['lbrynet'].get({'name':claim_name})
-        #self.assertEqual('/data/Downloads/FAQ.md',out['path'])
-        #self.assertEqual(sd_hash, out['stream_hash'])
+        out = lbrynets['lbrynet'].get({'name':claim_name})
+        self.assertEqual('/data/Downloads/FAQ.md',out['path'])
+        self.assertEqual(sd_hash, out['stream_hash'])
 
         # check to see if we can access sd_hash
         out = lbrynets['lbrynet'].download_descriptor({'sd_hash':sd_hash})
@@ -248,7 +252,7 @@ class LbrynetTest(unittest.TestCase):
         # test to see if we can download from dht
         if key_fee != 0:
             # send key fee (plus additional amount to pay for tx fee) to dht if necessary
-            self._send_from_lbrycrd(key_fee+1,lbrynets['dht'])
+            self._send_from_lbrycrd(key_fee+1, lbrynets['dht'])
 
         out = lbrynets['dht'].get({'name':claim_name})
         self.assertEqual('/data/Downloads/FAQ.md',out['path'])
@@ -263,20 +267,15 @@ class LbrynetTest(unittest.TestCase):
         if key_fee != 0:
             self._wait_for_lbrynet_sync()
             self._increment_blocks(6)
-            self._wait_till_balance_equals(lbrynets['lbrynet'],balance_before_key_fee+key_fee)
+            self._wait_till_balance_equals(lbrynets['lbrynet'], balance_before_key_fee+key_fee)
 
         # TODO: we should log into the dht docker instance and check for file presense and diff it against original
 
 
 
 if __name__ == '__main__':
-    # Make sure to rebuild docker instances
-    out,err=shell_command('docker-compose down')
-    out,err=shell_command('docker-compose rm -f')
-    out,err=shell_command('docker-compose build')
 
-    out,err=shell_command('docker-compose up > {}&'.format(DOCKER_LOG_FILE))
- 
+    
     unittest.main()
 
 
