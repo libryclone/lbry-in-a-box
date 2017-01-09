@@ -6,7 +6,7 @@ services:
   - docker
 
 script:
-  - sync_to_master.sh
+  - apply_regtest_patch.sh
   - python integration_testing.py
 
 
