@@ -6,7 +6,7 @@ services:
   - docker
 
 script:
-  - apply_regtest_patch.sh
+  - bash apply_regtest_patch.sh
   - python integration_testing.py
 
 
