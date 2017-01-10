@@ -10,8 +10,12 @@ and than run integration testing
 import unittest
 import subprocess
 import time
-from bitcoinrpc.authproxy import AuthServiceProxy
 from jsonrpc.proxy import JSONRPCProxy
+from bitcoinrpc.authproxy import AuthServiceProxy
+
+from urllib2 import URLError
+from httplib import BadStatusLine
+from socket import error
 
 lbrycrd_rpc_user='rpcuser'
 lbrycrd_rpc_pw='jhopfpusrx'
@@ -62,7 +66,6 @@ def print_func(func):
 class LbrynetTest(unittest.TestCase):
 
     def test_lbrynet(self):
-        start_time = time.time()
         self._test_lbrynet_startup()
         self._test_recv_and_send()
         # test publish and download of free content
@@ -74,7 +77,6 @@ class LbrynetTest(unittest.TestCase):
         print("Printing ERRORS found in log:")
         out,err = shell_command('grep ERROR {}'.format(DOCKER_LOG_FILE))
         print out
-        print("Total time taken for test:{}".format(time.time()-start_time))
 
     def _increment_blocks(self, num_blocks):
         LBRYNET_BLOCK_SYNC_TIMEOUT = 60
@@ -121,12 +123,16 @@ class LbrynetTest(unittest.TestCase):
         out = call_lbrycrd('sendtoaddress',address,amount)
         self._is_txid(out)
         self._increment_blocks(6)
-        start_time = time.time()
         self._wait_till_balance_equals(to_lbrynet,prev_balance+amount)
 
 
     def _check_lbrynet_init(self,lbrynet):
-        if lbrynet.is_running():
+        try:
+            lbrynet_is_running = lbrynet.is_running()
+        except (URLError,error,BadStatusLine) as e:
+            return False
+
+        if lbrynet_is_running:
             self.assertEqual(0,lbrynet.get_balance())
             self.assertEqual(True,lbrynet.is_first_run())
             return True
@@ -136,28 +142,26 @@ class LbrynetTest(unittest.TestCase):
     @print_func
     def _test_lbrynet_startup(self):
         LBRYNET_STARTUP_TIMEOUT = 60
+
         # Make sure to rebuild docker instances
-          
         out,err=shell_command('docker-compose down')
         out,err=shell_command('docker-compose rm -f')
         out,err=shell_command('docker-compose build')
         out,err=shell_command('docker-compose up > {}&'.format(DOCKER_LOG_FILE))
-        #wait for startup, TODO: should detect connection here
-        time.sleep(120)
-      
+
         start_time = time.time()
         while time.time() - start_time < LBRYNET_STARTUP_TIMEOUT:
             if all([self._check_lbrynet_init(lbrynet) for lbrynet in lbrynets.values()]):
                 return
             time.sleep(0.1)
-
         self.fail('Lbrynet failed to start up')
-
+ 
     # receive balance from lbrycrd to lbrynet
     @print_func
     def _test_recv_and_send(self):
         RECV_AMOUNT = 10
         SEND_AMOUNT = 1
+        LBRYNET_SEND_SYNC_TIMEOUT = 60
         self._send_from_lbrycrd(RECV_AMOUNT,lbrynets['lbrynet'])
 
         # create lbrycrd address
@@ -168,10 +172,14 @@ class LbrynetTest(unittest.TestCase):
         # send from lbrynet to lbrycrd
         out = lbrynets['lbrynet'].send_amount_to_address({'amount':SEND_AMOUNT, 'address':address})
         self.assertEqual(out,True)
-        self._wait_for_lbrynet_sync()
+        start_time = time.time()
+
+        # wait for lbrycrd to sync balance 
+        start_time = time.time()
+        while call_lbrycrd('getreceivedbyaccount','test',0) < SEND_AMOUNT:
+            if time.time() - start_time > LBRYNET_SEND_SYNC_TIMEOUT:
+                self.fail('Lbrynet send failed to sync within time') 
         self._increment_blocks(6)
-        # TODO: this fails sometimes if _wait_for_lbrynet_sync is not sufficiently long enough..
-        #    need to find better solution 
         out = call_lbrycrd('getbalance', 'test')
         self.assertEqual(SEND_AMOUNT, out)
 
