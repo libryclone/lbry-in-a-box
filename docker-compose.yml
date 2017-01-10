@@ -27,10 +27,16 @@ services:
     depends_on:
       - lbryum-server
       - fake-bittrex
+    environment:
+      # want to be able to access this from the host
+      - LBRY_API_INTERFACE=0.0.0.0
+      - LBRY_KNOWN_DHT_NODES=lbrynet:4444,reflector:4444
     expose:
       - 3333
       - 4444
-      
+    ports:
+      - 5278:5279
+
   reflector:
     build: ./lbrynet
     depends_on:
@@ -39,11 +45,14 @@ services:
       - fake-bittrex
     environment:
       - LBRY_RUN_REFLECTOR_SERVER=true
+      - LBRY_API_INTERFACE=0.0.0.0
+      - LBRY_KNOWN_DHT_NODES=lbrynet:4444,dht:4444
     expose:
       - 3333
       - 4444
       - 5566
-      
+    ports:
+      - 5277:5279
   lbrynet:
     build: ./lbrynet
     depends_on:
@@ -52,9 +61,9 @@ services:
       - fake-bittrex
       - reflector
     environment:
-      # want to be able to access this from the host
       - LBRY_API_INTERFACE=0.0.0.0
       - LBRY_ALLOWED_ORIGIN=http://localhost:5280
+      - LBRY_KNOWN_DHT_NODES=dht:4444,reflector:4444
     ports:
       # the ui and the api port
       - 5279:5279
