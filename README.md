@@ -34,7 +34,8 @@ The external services can be found by looking at the `ports` listing in the
 In order to use the UI, there is some more steps to do. The lbry-in-a-box
 branch contains patches needed to get the UI to work.  Do something like:
 
-    git clone https://github.com/lbryio/lbry-in-a-box.git
+    git clone https://github.com/lbryio/lbry-web-ui.git
+    cd lbry-web-ui
     git checkout lbry-in-a-box
     npm install
     ./node_modules/.bin/node-sass --output dist/css --sourcemap=none scss/
