@@ -141,7 +141,7 @@ class LbrynetTest(unittest.TestCase):
 
     @print_func
     def _test_lbrynet_startup(self):
-        LBRYNET_STARTUP_TIMEOUT = 60
+        LBRYNET_STARTUP_TIMEOUT = 120
 
         # Make sure to rebuild docker instances
         out,err=shell_command('docker-compose down')
@@ -155,7 +155,7 @@ class LbrynetTest(unittest.TestCase):
                 return
             time.sleep(0.1)
         self.fail('Lbrynet failed to start up')
- 
+
     # receive balance from lbrycrd to lbrynet
     @print_func
     def _test_recv_and_send(self):
@@ -172,13 +172,13 @@ class LbrynetTest(unittest.TestCase):
         # send from lbrynet to lbrycrd
         out = lbrynets['lbrynet'].send_amount_to_address({'amount':SEND_AMOUNT, 'address':address})
         self.assertEqual(out,True)
-        start_time = time.time()
 
-        # wait for lbrycrd to sync balance 
+        # wait for lbrycrd to sync balance
         start_time = time.time()
         while call_lbrycrd('getreceivedbyaccount','test',0) < SEND_AMOUNT:
             if time.time() - start_time > LBRYNET_SEND_SYNC_TIMEOUT:
-                self.fail('Lbrynet send failed to sync within time') 
+                self.fail('Lbrynet send failed to sync within time')
+            time.sleep(0.01)
         self._increment_blocks(6)
         out = call_lbrycrd('getbalance', 'test')
         self.assertEqual(SEND_AMOUNT, out)
@@ -277,13 +277,13 @@ class LbrynetTest(unittest.TestCase):
             self._increment_blocks(6)
             self._wait_till_balance_equals(lbrynets['lbrynet'], balance_before_key_fee+key_fee)
 
-        # TODO: we should log into the dht docker instance and check for file presense and diff it against original
-
-
+        cmd = 'docker exec -it lbryinabox_dht_1 find /data/Downloads/FAQ.md'
+        out,err = shell_command(cmd)
+        self.assertFalse('No such file' in out)
+        self.assertTrue('/data/Downloads/FAQ.md' in out)
 
 if __name__ == '__main__':
 
-    
     unittest.main()
 
 
