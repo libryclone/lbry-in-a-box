@@ -29,7 +29,7 @@ services:
       - fake-bittrex
     environment:
       # want to be able to access this from the host
-      - LBRY_API_INTERFACE=0.0.0.0
+      - LBRY_API_HOST=0.0.0.0
       - LBRY_KNOWN_DHT_NODES=lbrynet:4444,reflector:4444
     expose:
       - 3333
@@ -45,7 +45,7 @@ services:
       - fake-bittrex
     environment:
       - LBRY_RUN_REFLECTOR_SERVER=true
-      - LBRY_API_INTERFACE=0.0.0.0
+      - LBRY_API_HOST=0.0.0.0
       - LBRY_KNOWN_DHT_NODES=lbrynet:4444,dht:4444
     expose:
       - 3333
@@ -61,7 +61,7 @@ services:
       - fake-bittrex
       - reflector
     environment:
-      - LBRY_API_INTERFACE=0.0.0.0
+      - LBRY_API_HOST=0.0.0.0
       - LBRY_ALLOWED_ORIGIN=http://localhost:5280
       - LBRY_KNOWN_DHT_NODES=dht:4444,reflector:4444
     ports:
