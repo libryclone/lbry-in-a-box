@@ -1,5 +1,4 @@
 """
-
 Integration testing using lbry-in-a-box
 
 This will stop,rebuild and launch docker containers for lbry in a box,
@@ -43,7 +42,7 @@ test_metadata = {
 }
 
 DOCKER_LOG_FILE='tmp.log'
-
+NUM_INITIAL_BLOCKS_GENERATED = 150
 
 def shell_command(command):
     p = subprocess.Popen(command,shell=True,stdout=subprocess.PIPE)
@@ -128,13 +127,15 @@ class LbrynetTest(unittest.TestCase):
 
     def _check_lbrynet_init(self,lbrynet):
         try:
-            lbrynet_is_running = lbrynet.is_running()
+            lbrynet_status = lbrynet.status()
         except (URLError,error,BadStatusLine) as e:
             return False
 
-        if lbrynet_is_running:
-            self.assertEqual(0,lbrynet.get_balance())
-            self.assertEqual(True,lbrynet.is_first_run())
+        if lbrynet_status['is_running'] == True:
+            self.assertEqual(0, lbrynet.get_balance())
+            self.assertEqual(True, lbrynet_status['is_first_run'])
+            self.assertEqual(0, lbrynet_status['blocks_behind'])
+            self.assertEqual(NUM_INITIAL_BLOCKS_GENERATED, lbrynet_status['blockchain_status']['blocks'])
             return True
         else:
             return False
@@ -196,7 +197,7 @@ class LbrynetTest(unittest.TestCase):
             key_fee_address = lbrynets['lbrynet'].get_new_address()
             test_metadata["fee"]= {'LBC': {"address": key_fee_address, "amount": key_fee}}
 
-        #TODO make a custom file to be downloaded/published , instead of using the FAQ page 
+        #TODO make a custom file to be downloaded/published , instead of using the FAQ page
         out = lbrynets['lbrynet'].publish({'name':claim_name,'file_path':'/src/lbry/FAQ.md','bid':claim_amount,'metadata':test_metadata})
         publish_txid = out['txid']
         publish_nout = out['nout']
@@ -271,7 +272,7 @@ class LbrynetTest(unittest.TestCase):
         self.assertTrue(sd_hash in out)
         self.assertTrue(blob_hash in out)
 
-        # check if dht has the file 
+        # check if dht has the file
         cmd = 'docker exec -it lbryinabox_dht_1 find /data/Downloads/FAQ.md'
         out,err = shell_command(cmd)
         self.assertFalse('No such file' in out)
@@ -283,7 +284,6 @@ class LbrynetTest(unittest.TestCase):
             self._increment_blocks(6)
             self._wait_till_balance_equals(lbrynets['lbrynet'], balance_before_key_fee+key_fee)
 
-        
 
 
 if __name__ == '__main__':
