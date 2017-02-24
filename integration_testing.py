@@ -153,7 +153,7 @@ class LbrynetTest(unittest.TestCase):
         while time.time() - start_time < LBRYNET_STARTUP_TIMEOUT:
             if all([self._check_lbrynet_init(lbrynet) for lbrynet in lbrynets.values()]):
                 return
-            time.sleep(0.1)
+            time.sleep(3)
         self.fail('Lbrynet failed to start up')
 
     # receive balance from lbrycrd to lbrynet
@@ -235,18 +235,18 @@ class LbrynetTest(unittest.TestCase):
         self.assertEqual('/data/Downloads/FAQ.md',out['path'])
         self.assertEqual(sd_hash, out['stream_hash'])
 
-        # check to see if we can access sd_hash
-        out = lbrynets['lbrynet'].download_descriptor({'sd_hash':sd_hash})
-        blob_hash = out['blobs'][0]['blob_hash']
+        # check file is under file list
+        out = lbrynets['lbrynet'].file_list()
+        found_file = False
+        for f in out:
+            if f['sd_hash'] == sd_hash and f['lbry_uri'] == claim_name:
+                found_file = True
+        self.assertTrue(found_file)
 
-        # check that we have all the hashes
-        out = lbrynets['lbrynet'].get_blob_hashes()
-        self.assertTrue(sd_hash in out)
-        self.assertTrue(blob_hash in out)
-
-        # check reflector to see if it can access sd_hash
-        out = lbrynets['reflector'].download_descriptor({'sd_hash':sd_hash})
-        self.assertEqual(blob_hash,out['blobs'][0]['blob_hash'])
+        # check that we can get its blob
+        out = lbrynets['lbrynet'].blob_list({'sd_hash':sd_hash})
+        self.assertEqual(1, len(out))
+        blob_hash = out[0]
 
         # check reflector to see if it has hashes
         out = lbrynets['reflector'].get_blob_hashes()
@@ -271,16 +271,20 @@ class LbrynetTest(unittest.TestCase):
         self.assertTrue(sd_hash in out)
         self.assertTrue(blob_hash in out)
 
+        # check if dht has the file 
+        cmd = 'docker exec -it lbryinabox_dht_1 find /data/Downloads/FAQ.md'
+        out,err = shell_command(cmd)
+        self.assertFalse('No such file' in out)
+        self.assertTrue('/data/Downloads/FAQ.md' in out)
+
         # test to see if lbrynet received key fee
         if key_fee != 0:
             self._wait_for_lbrynet_sync()
             self._increment_blocks(6)
             self._wait_till_balance_equals(lbrynets['lbrynet'], balance_before_key_fee+key_fee)
 
-        cmd = 'docker exec -it lbryinabox_dht_1 find /data/Downloads/FAQ.md'
-        out,err = shell_command(cmd)
-        self.assertFalse('No such file' in out)
-        self.assertTrue('/data/Downloads/FAQ.md' in out)
+        
+
 
 if __name__ == '__main__':
 
