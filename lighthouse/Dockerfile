@@ -20,6 +20,9 @@ ADD lbry/requirements.txt /src/lbry/requirements.txt
 RUN virtualenv /app \
  && /app/bin/pip install -r /src/lbry/requirements.txt
 
+ADD lbryum /src/lbryum
+RUN /app/bin/pip install -U /src/lbryum
+
 # I don't think we need lbryum
 # build the app from source
 ADD lbry/ /src/lbry

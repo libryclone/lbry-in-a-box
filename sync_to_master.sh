@@ -14,3 +14,4 @@ fi
 (cd lbrynet/lbryum; git fetch origin; git checkout origin/master)
 (cd lbryum-server/lbryum-server; git fetch origin; git checkout origin/master)
 (cd lighthouse/lighthouse; git fetch origin; git checkout origin/master)
+(cd lighthouse/lbryum; git fetch origin; git checkout origin/master)
