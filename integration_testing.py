@@ -15,6 +15,7 @@ from bitcoinrpc.authproxy import AuthServiceProxy
 from urllib2 import URLError
 from httplib import BadStatusLine
 from socket import error
+import os
 
 lbrycrd_rpc_user='rpcuser'
 lbrycrd_rpc_pw='jhopfpusrx'
@@ -71,11 +72,20 @@ class LbrynetTest(unittest.TestCase):
         self._test_publish('testname',1,)
         # test publish and download of non free content
         self._test_publish('testname2',1,1)
+        self._test_update()
 
         # TODO: should try to remove all errors here, raise error if found
         print("Printing ERRORS found in log:")
         out,err = shell_command('grep ERROR {}'.format(DOCKER_LOG_FILE))
         print out
+
+    # generate random test file at lbrynet instance
+    def _generate_test_file(self, file_size_bytes, file_path):
+
+        cmd = 'docker exec -it lbryinabox_lbrynet_1 dd if=/dev/urandom of={} bs={} count=1'.format(file_path, file_size_bytes)
+        #cmd = 'docker exec -it lbryinabox_lbrynet_1 head -c {} </dev/urandom >{}'.format(file_size_bytes, file_path)
+        out,err = shell_command(cmd)
+
 
     def _increment_blocks(self, num_blocks):
         LBRYNET_BLOCK_SYNC_TIMEOUT = 60
@@ -184,11 +194,7 @@ class LbrynetTest(unittest.TestCase):
         out = call_lbrycrd('getbalance', 'test')
         self.assertEqual(SEND_AMOUNT, out)
 
-
-    # test publishing from lbrynet, and test to see if we can download from dht
-    @print_func
-    def _test_publish(self, claim_name, claim_amount, key_fee = 0):
-        claim_amount = 1
+    def _publish(self, claim_name, claim_amount, key_fee, test_pub_file, test_pub_file_size):
         # make sure we have enough to claim the amount
         out = lbrynets['lbrynet'].get_balance()
         self.assertTrue(out >= claim_amount)
@@ -197,8 +203,9 @@ class LbrynetTest(unittest.TestCase):
             key_fee_address = lbrynets['lbrynet'].get_new_address()
             test_metadata["fee"]= {'LBC': {"address": key_fee_address, "amount": key_fee}}
 
-        #TODO make a custom file to be downloaded/published , instead of using the FAQ page
-        out = lbrynets['lbrynet'].publish({'name':claim_name,'file_path':'/src/lbry/FAQ.md','bid':claim_amount,'metadata':test_metadata})
+        self._generate_test_file(test_pub_file_size, test_pub_file)
+
+        out = lbrynets['lbrynet'].publish({'name':claim_name,'file_path':test_pub_file,'bid':claim_amount,'metadata':test_metadata})
         publish_txid = out['txid']
         publish_nout = out['nout']
         self._is_txid(publish_txid)
@@ -206,6 +213,18 @@ class LbrynetTest(unittest.TestCase):
 
         self._wait_for_lbrynet_sync()
         self._increment_blocks(6)
+        return publish_txid,publish_nout
+
+
+
+    # test publishing from lbrynet, and test to see if we can download from dht
+    @print_func
+    def _test_publish(self, claim_name, claim_amount, key_fee = 0):
+        test_pub_file_name = claim_name+'.txt'
+        test_pub_file_dir = '/src/lbry'
+        test_pub_file = os.path.join(test_pub_file_dir,test_pub_file_name)
+        expected_download_file = os.path.join('/data/Downloads/',test_pub_file_name)
+        publish_txid, publish_nout = self._publish(claim_name, claim_amount, key_fee, test_pub_file, 1024)
 
         balance_before_key_fee = lbrynets['lbrynet'].get_balance()
 
@@ -233,16 +252,23 @@ class LbrynetTest(unittest.TestCase):
 
         # test download of own file
         out = lbrynets['lbrynet'].get({'name':claim_name})
-        self.assertEqual('/data/Downloads/FAQ.md',out['path'])
+        self.assertEqual(expected_download_file,out['path'])
         self.assertEqual(sd_hash, out['stream_hash'])
 
         # check file is under file list
         out = lbrynets['lbrynet'].file_list()
         found_file = False
         for f in out:
-            if f['sd_hash'] == sd_hash and f['lbry_uri'] == claim_name:
+            if( f['sd_hash'] == sd_hash and f['lbry_uri'] == claim_name and
+                f['download_path'] == expected_download_file ):
                 found_file = True
         self.assertTrue(found_file)
+
+        # check file is under file_get
+        out = lbrynets['lbrynet'].file_get({'name':claim_name})
+        self.assertEqual(out['sd_hash'], sd_hash)
+        self.assertEqual(out['lbry_uri'], claim_name)
+        self.assertEqual(out['download_path'], expected_download_file)
 
         # check that we can get its blob
         out = lbrynets['lbrynet'].blob_list({'sd_hash':sd_hash})
@@ -264,7 +290,7 @@ class LbrynetTest(unittest.TestCase):
             self._send_from_lbrycrd(key_fee+1, lbrynets['dht'])
 
         out = lbrynets['dht'].get({'name':claim_name})
-        self.assertEqual('/data/Downloads/FAQ.md',out['path'])
+        self.assertEqual(expected_download_file, out['path'])
         self.assertEqual(sd_hash, out['stream_hash'])
 
         # check to see if dht has the downloaded hashes
@@ -273,10 +299,10 @@ class LbrynetTest(unittest.TestCase):
         self.assertTrue(blob_hash in out)
 
         # check if dht has the file
-        cmd = 'docker exec -it lbryinabox_dht_1 find /data/Downloads/FAQ.md'
+        cmd = 'docker exec -it lbryinabox_dht_1 find {}'.format(expected_download_file)
         out,err = shell_command(cmd)
         self.assertFalse('No such file' in out)
-        self.assertTrue('/data/Downloads/FAQ.md' in out)
+        self.assertTrue(expected_download_file in out)
 
         # test to see if lbrynet received key fee
         if key_fee != 0:
@@ -284,6 +310,28 @@ class LbrynetTest(unittest.TestCase):
             self._increment_blocks(6)
             self._wait_till_balance_equals(lbrynets['lbrynet'], balance_before_key_fee+key_fee)
 
+
+    def _test_update(self, claim_name='updatetest', claim_amount=1, key_fee=0 ):
+        test_pub_file_name = claim_name+'.txt'
+        test_pub_file_dir = '/src/lbry'
+        test_pub_file = os.path.join(test_pub_file_dir,test_pub_file_name)
+        expected_download_file = os.path.join('/data/Downloads/',test_pub_file_name)
+        publish_txid, publish_nout = self._publish(claim_name, claim_amount, key_fee, test_pub_file, 1024)
+
+        #  download from dht
+        out = lbrynets['dht'].get({'name':claim_name})
+
+        test_pub_file_name = claim_name+'2.txt'
+        test_pub_file_dir = '/src/lbry'
+        test_pub_file = os.path.join(test_pub_file_dir,test_pub_file_name)
+        expected_download_file = os.path.join('/data/Downloads/',test_pub_file_name)
+        update_publish_txid, update_publish_nout = self._publish(claim_name, claim_amount, key_fee, test_pub_file, 1024)
+
+        # check claimtrie state is updated
+        out = lbrynets['lbrynet'].get_claim_info({'name':claim_name})
+        self.assertEqual(claim_name, out['name'])
+        self.assertEqual(update_publish_txid, out['txid'])
+        self.assertEqual(update_publish_nout, out['nout'])
 
 
 if __name__ == '__main__':
