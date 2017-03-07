@@ -33,13 +33,11 @@ lbrynets['reflector'] = JSONRPCProxy.from_url("http://localhost:{}/lbryapi".form
 test_metadata = {
     'license': 'NASA',
     'ver': '0.0.3',
-    'description': 'test',
+    'description': 'test_description',
     'language': 'en',
-    'author': 'test',
-    'title': 'test',
+    'author': 'test_author',
+    'title': 'test_title',
     'nsfw': False,
-    'content_type': 'video/mp4',
-    'thumbnail': 'test'
 }
 
 DOCKER_LOG_FILE='tmp.log'
@@ -81,9 +79,7 @@ class LbrynetTest(unittest.TestCase):
 
     # generate random test file at lbrynet instance
     def _generate_test_file(self, file_size_bytes, file_path):
-
         cmd = 'docker exec -it lbryinabox_lbrynet_1 dd if=/dev/urandom of={} bs={} count=1'.format(file_path, file_size_bytes)
-        #cmd = 'docker exec -it lbryinabox_lbrynet_1 head -c {} </dev/urandom >{}'.format(file_size_bytes, file_path)
         out,err = shell_command(cmd)
 
 
@@ -122,11 +118,10 @@ class LbrynetTest(unittest.TestCase):
         self.fail('Lbrynet failed to sync balance in time')
 
     def _wait_for_lbrynet_sync(self):
-        time.sleep(40)
+        time.sleep(30)
 
     # send amount from lbrycrd to lbrynet instance
     def _send_from_lbrycrd(self, amount, to_lbrynet):
-        LBRYNET_RECV_TIMEOUT = 60
         prev_balance = to_lbrynet.get_balance()
         address = to_lbrynet.get_new_address()
         out = call_lbrycrd('sendtoaddress',address,amount)
@@ -235,7 +230,7 @@ class LbrynetTest(unittest.TestCase):
         self.assertEqual(out['txid'],publish_txid)
         self.assertEqual(out['n'],publish_nout)
 
-        # check lbrynet claim state is updated
+        # check lbrynet claim states are updated
         out = lbrynets['lbrynet'].claim_show({'name':claim_name})
         self.assertEqual(claim_name, out['name'])
         self.assertEqual(publish_txid, out['txid'])
@@ -245,11 +240,29 @@ class LbrynetTest(unittest.TestCase):
 
         sd_hash = out['value']['sources']['lbry_sd_hash']
 
-        out = lbrynets['lbrynet'].claim_list_mine({'name':claim_name})
-        self.assertTrue(isinstance(out,dict))
-        self.assertEqual(claim_name,out['name'])
-        self.assertEqual(claim_amount,out['amount'])
+        out = lbrynets['lbrynet'].claim_list_mine()
+        found = False
+        for claim in out:
+            if (claim['name'] == claim_name and claim['amount'] == claim_amount):
+                found = True
+        self.assertTrue(found)
 
+        out = lbrynets['lbrynet'].claim_list({'name':claim_name})
+        self.assertTrue('claims' in out)
+        self.assertEqual(1, len(out['claims']))
+        self.assertEqual(publish_txid, out['claims'][0]['txid'])
+        # should test below with format change
+        #self.assertEqual(claim_amount, out['claims'][0]['amount'])
+        #self.assertEqual(publish_nout, out['claims'][0]['nOut'])
+
+        out = lbrynets['lbrynet'].resolve_name({'name':claim_name})
+        self.assertEqual(out['license'], 'NASA')
+        self.assertEqual(out['ver'], '0.0.3')
+        self.assertEqual(out['description'], 'test_description')
+        self.assertEqual(out['language'], 'en')
+        self.assertEqual(out['author'], 'test_author')
+        self.assertEqual(out['title'], 'test_title')
+        self.assertEqual(out['nsfw'], False)
 
         # test download of own file
         out = lbrynets['lbrynet'].get({'name':claim_name})
@@ -267,6 +280,11 @@ class LbrynetTest(unittest.TestCase):
 
         # check file is under file_get
         out = lbrynets['lbrynet'].file_get({'name':claim_name})
+        self.assertEqual(out['sd_hash'], sd_hash)
+        self.assertEqual(out['lbry_uri'], claim_name)
+        self.assertEqual(out['download_path'], expected_download_file)
+
+        out = lbrynets['lbrynet'].file_get({'sd_hash':sd_hash})
         self.assertEqual(out['sd_hash'], sd_hash)
         self.assertEqual(out['lbry_uri'], claim_name)
         self.assertEqual(out['download_path'], expected_download_file)
