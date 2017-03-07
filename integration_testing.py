@@ -236,7 +236,7 @@ class LbrynetTest(unittest.TestCase):
         self.assertEqual(out['n'],publish_nout)
 
         # check lbrynet claim state is updated
-        out = lbrynets['lbrynet'].get_claim_info({'name':claim_name})
+        out = lbrynets['lbrynet'].claim_show({'name':claim_name})
         self.assertEqual(claim_name, out['name'])
         self.assertEqual(publish_txid, out['txid'])
         self.assertEqual(publish_nout, out['nout'])
@@ -245,10 +245,11 @@ class LbrynetTest(unittest.TestCase):
 
         sd_hash = out['value']['sources']['lbry_sd_hash']
 
-        out = lbrynets['lbrynet'].get_my_claim({'name':claim_name})
+        out = lbrynets['lbrynet'].claim_list_mine({'name':claim_name})
         self.assertTrue(isinstance(out,dict))
         self.assertEqual(claim_name,out['name'])
         self.assertEqual(claim_amount,out['amount'])
+
 
         # test download of own file
         out = lbrynets['lbrynet'].get({'name':claim_name})
@@ -328,7 +329,7 @@ class LbrynetTest(unittest.TestCase):
         update_publish_txid, update_publish_nout = self._publish(claim_name, claim_amount, key_fee, test_pub_file, 1024)
 
         # check claimtrie state is updated
-        out = lbrynets['lbrynet'].get_claim_info({'name':claim_name})
+        out = lbrynets['lbrynet'].claim_show({'name':claim_name})
         self.assertEqual(claim_name, out['name'])
         self.assertEqual(update_publish_txid, out['txid'])
         self.assertEqual(update_publish_nout, out['nout'])
