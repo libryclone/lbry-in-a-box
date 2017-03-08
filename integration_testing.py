@@ -109,16 +109,16 @@ class LbrynetTest(unittest.TestCase):
         self.assertEqual(len(blockhash),64)
 
     def _wait_till_balance_equals(self,lbrynet,amount):
-        LBRYNET_SYNC_TIMEOUT = 30
+        LBRYNET_SYNC_TIMEOUT = 60
         start_time = time.time()
         while time.time() - start_time < LBRYNET_SYNC_TIMEOUT:
             if lbrynet.get_balance() == amount:
                 return
-            time.sleep(0.01)
+            time.sleep(0.1)
         self.fail('Lbrynet failed to sync balance in time')
 
     def _wait_for_lbrynet_sync(self):
-        time.sleep(30)
+        time.sleep(60)
 
     # send amount from lbrycrd to lbrynet instance
     def _send_from_lbrycrd(self, amount, to_lbrynet):
@@ -184,7 +184,7 @@ class LbrynetTest(unittest.TestCase):
         while call_lbrycrd('getreceivedbyaccount','test',0) < SEND_AMOUNT:
             if time.time() - start_time > LBRYNET_SEND_SYNC_TIMEOUT:
                 self.fail('Lbrynet send failed to sync within time')
-            time.sleep(0.01)
+            time.sleep(0.1)
         self._increment_blocks(6)
         out = call_lbrycrd('getbalance', 'test')
         self.assertEqual(SEND_AMOUNT, out)
