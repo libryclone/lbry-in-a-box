@@ -77,17 +77,20 @@ class LbrynetTest(unittest.TestCase):
         out,err = shell_command('grep ERROR {}'.format(DOCKER_LOG_FILE))
         print out
 
+    # randomly generate a test file on lbrynet instance
     def _generate_test_file(self, lbrynet_instance_str, file_size_bytes, file_path):
         cmd = 'docker exec -it lbryinabox_{}_1 dd if=/dev/urandom of={} bs={} count=1'.format(
             lbrynet_instance_str, file_path, file_size_bytes)
         out,err = shell_command(cmd)
 
+    # get sha1sum of a file on lbrynet instance
     def _get_sha1sum_of_file(self, lbrynet_instance_str, file_path):
         cmd = 'docker exec -it lbryinabox_{}_1 sha1sum {}'.format(lbrynet_instance_str, file_path)
         out,err = shell_command(cmd)
         sha1sum =  out.split()[0]
         return sha1sum
 
+    # check if file exists on a lbrynet isntance
     def _check_has_file(self, lbrynet_instance_str, file_path):
         cmd = 'docker exec -it lbryinabox_{}_1 find {}'.format(lbrynet_instance_str, file_path)
         out,err = shell_command(cmd)
@@ -120,7 +123,7 @@ class LbrynetTest(unittest.TestCase):
         self.assertEqual(len(blockhash),64)
 
     def _wait_till_balance_equals(self,lbrynet,amount):
-        LBRYNET_SYNC_TIMEOUT = 80
+        LBRYNET_SYNC_TIMEOUT = 90
         start_time = time.time()
         while time.time() - start_time < LBRYNET_SYNC_TIMEOUT:
             if lbrynet.get_balance() == amount:
@@ -129,7 +132,7 @@ class LbrynetTest(unittest.TestCase):
         self.fail('Lbrynet failed to sync balance in time')
 
     def _wait_for_lbrynet_sync(self):
-        time.sleep(80)
+        time.sleep(90)
 
     # send amount from lbrycrd to lbrynet instance
     def _send_from_lbrycrd(self, amount, to_lbrynet):
@@ -270,7 +273,10 @@ class LbrynetTest(unittest.TestCase):
         out = lbrynets['lbrynet'].claim_list_mine()
         found = False
         for claim in out:
-            if (claim['name'] == claim_name and claim['amount'] == claim_amount):
+            if (claim['name'] == claim_name and
+                claim['amount'] == claim_amount and
+                claim['txid'] == publish_txid and
+                claim['nout'] == publish_nout):
                 found = True
         self.assertTrue(found)
 
@@ -278,9 +284,8 @@ class LbrynetTest(unittest.TestCase):
         self.assertTrue('claims' in out)
         self.assertEqual(1, len(out['claims']))
         self.assertEqual(publish_txid, out['claims'][0]['txid'])
-        # should test below with format change
-        #self.assertEqual(claim_amount, out['claims'][0]['amount'])
-        #self.assertEqual(publish_nout, out['claims'][0]['nOut'])
+        self.assertEqual(publish_nout, out['claims'][0]['nout'])
+        self.assertEqual(claim_amount, out['claims'][0]['amount'])
 
         out = lbrynets['lbrynet'].resolve_name({'name':claim_name})
         self.assertEqual(out['license'], 'NASA')
@@ -392,28 +397,33 @@ class LbrynetTest(unittest.TestCase):
         out = lbrynets['dht'].file_list()
         self.assertEqual(0, len(out))
 
-    def _test_update(self, claim_name='updatetest', claim_amount=1, key_fee=0 ):
+    @print_func
+    def _test_update(self, claim_name='updatetest', claim_amount=1, update_amount=2, key_fee=0 ):
         test_pub_file_name = claim_name+'.txt'
         test_pub_file_dir = '/src/lbry'
         test_pub_file = os.path.join(test_pub_file_dir,test_pub_file_name)
         expected_download_file = os.path.join('/data/Downloads/',test_pub_file_name)
+
+        # publish
         publish_txid, publish_nout, claim_id = self._publish(claim_name, claim_amount, key_fee, test_pub_file, 1024)
 
-        #  download from dht
+        #  download published file from dht
         out = lbrynets['dht'].get({'name':claim_name})
 
         test_pub_file_name = claim_name+'2.txt'
         test_pub_file_dir = '/src/lbry'
         test_pub_file = os.path.join(test_pub_file_dir,test_pub_file_name)
         expected_download_file = os.path.join('/data/Downloads/',test_pub_file_name)
-        update_publish_txid, update_publish_nout, claim_id = self._publish(claim_name, claim_amount, key_fee, test_pub_file, 1024)
+
+        # update
+        update_publish_txid, update_publish_nout, claim_id = self._publish(claim_name, update_amount, key_fee, test_pub_file, 1024)
 
         # check claimtrie state is updated
         out = lbrynets['lbrynet'].claim_show({'name':claim_name})
         self.assertEqual(claim_name, out['name'])
         self.assertEqual(update_publish_txid, out['txid'])
         self.assertEqual(update_publish_nout, out['nout'])
-
+        self.assertEqual(update_amount, out['amount'])
 
 if __name__ == '__main__':
 
