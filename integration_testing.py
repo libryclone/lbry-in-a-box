@@ -161,7 +161,7 @@ class LbrynetTest(unittest.TestCase):
 
     @print_func
     def _test_lbrynet_startup(self):
-        LBRYNET_STARTUP_TIMEOUT = 120
+        LBRYNET_STARTUP_TIMEOUT = 180
 
         # Make sure to rebuild docker instances
         out,err=shell_command('docker-compose down')
