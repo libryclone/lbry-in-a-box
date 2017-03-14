@@ -208,6 +208,7 @@ class LbrynetTest(unittest.TestCase):
         out = lbrynets['lbrynet'].get_balance()
         self.assertTrue(out >= claim_amount)
 
+        key_fee_address = None
         if key_fee != 0:
             key_fee_address = lbrynets['lbrynet'].get_new_address()
             test_metadata["fee"]= {'LBC': {"address": key_fee_address, "amount": key_fee}}
@@ -228,16 +229,17 @@ class LbrynetTest(unittest.TestCase):
 
         self._wait_for_lbrynet_sync()
         self._increment_blocks(6)
-        return publish_txid,publish_nout,claim_id
+        return publish_txid,publish_nout,claim_id,key_fee_address
 
-
-    def _compare_file_info(self, expected_file_info, file_info):
-        for key,val in expected_file_info.iteritems():
-            if key not in file_info:
-                #print("{} not found".format(key))
+    # makes sure all key,value present in expected_dict is present
+    # and equivalent acutal_dict, return True if so
+    def _compare_dict(self, expected_dict, actual_dict):
+        for key,val in expected_dict.iteritems():
+            if key not in actual_dict:
+                print("{} not found".format(key))
                 return False
-            if expected_file_info[key] != file_info[key]:
-                #print("{} does not equal {} for key {}".format(expected_file_info[key],file_info[key],key))
+            if expected_dict[key] != actual_dict[key]:
+                print("{} does not equal {} for key {}".format(expected_dict[key],actual_dict[key],key))
                 return False
         return True
 
@@ -249,7 +251,8 @@ class LbrynetTest(unittest.TestCase):
         test_pub_file_dir = '/src/lbry'
         test_pub_file = os.path.join(test_pub_file_dir,test_pub_file_name)
         expected_download_file = os.path.join('/data/Downloads/',test_pub_file_name)
-        publish_txid, publish_nout, claim_id = self._publish(claim_name, claim_amount, key_fee, test_pub_file, test_pub_file_size)
+        publish_txid, publish_nout, claim_id, key_fee_address = self._publish(
+                            claim_name, claim_amount, key_fee, test_pub_file, test_pub_file_size)
         publish_outpoint = publish_txid+':'+str(publish_nout)
 
         balance_before_key_fee = lbrynets['lbrynet'].get_balance()
@@ -287,14 +290,22 @@ class LbrynetTest(unittest.TestCase):
         self.assertEqual(publish_nout, out['claims'][0]['nout'])
         self.assertEqual(claim_amount, out['claims'][0]['amount'])
 
+        expected_metadata={
+            'license':test_metadata['license'],
+            'ver':test_metadata['ver'],
+            'language':test_metadata['language'],
+            'author':test_metadata['author'],
+            'title':test_metadata['title'],
+            'sources':{'lbry_sd_hash':sd_hash},
+            'nsfw':test_metadata['nsfw'],
+            'content_type':'text/plain',
+            'description':test_metadata['description']
+        }
+        if key_fee != 0:
+            expected_metadata['fee'] = {'LBC': {"address": key_fee_address, "amount": key_fee}}
+
         out = lbrynets['lbrynet'].resolve_name({'name':claim_name})
-        self.assertEqual(out['license'], 'NASA')
-        self.assertEqual(out['ver'], '0.0.3')
-        self.assertEqual(out['description'], 'test_description')
-        self.assertEqual(out['language'], 'en')
-        self.assertEqual(out['author'], 'test_author')
-        self.assertEqual(out['title'], 'test_title')
-        self.assertEqual(out['nsfw'], False)
+        self.assertTrue(self._compare_dict(expected_metadata,out))
 
         # TODO:need to check stream hash, points paid, written_bytes,
         # completed, stopped
@@ -310,32 +321,34 @@ class LbrynetTest(unittest.TestCase):
             'claim_id': claim_id,
         }
 
-
         # test download of own file
         out = lbrynets['lbrynet'].get({'name':claim_name})
-        self.assertTrue(self._compare_file_info(expected_file_info, out))
+        self.assertTrue(self._compare_dict(expected_file_info, out))
+        self.assertTrue(self._compare_dict(expected_metadata, out['metadata']))
 
         # check file is under file_list
         out = lbrynets['lbrynet'].file_list()
         found_file = False
         for f in out:
-            if self._compare_file_info(expected_file_info,f):
+            if self._compare_dict(expected_file_info,f):
                 found_file = True
         self.assertTrue(found_file)
 
         # check file_list filtering works
         out = lbrynets['lbrynet'].file_list({'name':claim_name})
         self.assertEqual(1, len(out))
-        self.assertTrue(self._compare_file_info(expected_file_info,out[0]))
+        self.assertTrue(self._compare_dict(expected_file_info,out[0]))
+        self.assertTrue(self._compare_dict(expected_metadata, out[0]['metadata']))
 
         out = lbrynets['lbrynet'].file_list({'sd_hash':sd_hash})
         self.assertEqual(1, len(out))
-        self.assertTrue(self._compare_file_info(expected_file_info,out[0]))
+        self.assertTrue(self._compare_dict(expected_file_info,out[0]))
+        self.assertTrue(self._compare_dict(expected_metadata, out[0]['metadata']))
 
         out = lbrynets['lbrynet'].file_list({'file_name':test_pub_file_name})
         self.assertEqual(1, len(out))
-        self.assertTrue(self._compare_file_info(expected_file_info,out[0]))
-
+        self.assertTrue(self._compare_dict(expected_file_info,out[0]))
+        self.assertTrue(self._compare_dict(expected_metadata, out[0]['metadata']))
 
         # check that we can get its blob
         out = lbrynets['lbrynet'].blob_list({'sd_hash':sd_hash})
@@ -357,7 +370,7 @@ class LbrynetTest(unittest.TestCase):
             self._send_from_lbrycrd(key_fee+1, lbrynets['dht'])
 
         out = lbrynets['dht'].get({'name':claim_name})
-        self.assertTrue(self._compare_file_info(expected_file_info, out))
+        self.assertTrue(self._compare_dict(expected_file_info, out))
 
         # wait for download to finish
         DOWNLOAD_TIMEOUT = 30
@@ -405,7 +418,7 @@ class LbrynetTest(unittest.TestCase):
         expected_download_file = os.path.join('/data/Downloads/',test_pub_file_name)
 
         # publish
-        publish_txid, publish_nout, claim_id = self._publish(claim_name, claim_amount, key_fee, test_pub_file, 1024)
+        publish_txid, publish_nout, claim_id, key_fee_address = self._publish(claim_name, claim_amount, key_fee, test_pub_file, 1024)
 
         #  download published file from dht
         out = lbrynets['dht'].get({'name':claim_name})
@@ -416,7 +429,7 @@ class LbrynetTest(unittest.TestCase):
         expected_download_file = os.path.join('/data/Downloads/',test_pub_file_name)
 
         # update
-        update_publish_txid, update_publish_nout, claim_id = self._publish(claim_name, update_amount, key_fee, test_pub_file, 1024)
+        update_publish_txid, update_publish_nout, claim_id, key_fee_address = self._publish(claim_name, update_amount, key_fee, test_pub_file, 1024)
 
         # check claimtrie state is updated
         out = lbrynets['lbrynet'].claim_show({'name':claim_name})
