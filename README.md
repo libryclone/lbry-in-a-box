@@ -85,3 +85,22 @@ branches for each repo and use environment variables to configure the
 behavior. That is definitely work for the future.  Anyway - if there
 are updates to a component - you'll have to pull in those changes and
 update the `lbry-in-a-box` branch.
+
+## Running integration testing
+
+To run integration testing, first run 'bash sync_to_master.sh' in order
+to sync repositories to their respective masters on github. You can also
+specify which branch to sync lbrynet and lbryum to if you want to test
+a non master branch.
+
+Next, run 'bash apply_regetest_patch.sh' which will patch lbryum and
+lbryum-server to run on regtest network.
+
+Finally, run 'python integration_testing.py' which will launch all the
+docker containers and run integration testing. Testing takes abou 10 minutes
+currently. 
+
+
+
+
+

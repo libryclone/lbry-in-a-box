@@ -2,16 +2,18 @@
 # Sync all lbry repos to master
 # if supplied with argument, sync lbry to that tag instead
 
-if [ $# -ge 1 ]
+if [ $# -eq 2 ]
 then
-    tag=$1
+    lbry_tag=$1
+    lbryum_tag=$2
 else
-    tag=origin/master
+    lbry_tag=origin/master
+    lbryum_tag=origin/master
 fi
 
-(cd lbrynet/lbry; git fetch origin; git checkout $tag)
-(cd lighthouse/lbry; git fetch origin; git checkout $tag)
-(cd lbrynet/lbryum; git fetch origin; git checkout origin/master)
+(cd lbrynet/lbry; git fetch origin; git checkout $lbry_tag)
+(cd lighthouse/lbry; git fetch origin; git checkout $lbry_tag)
+(cd lbrynet/lbryum; git fetch origin; git checkout $lbryum_tag)
+(cd lighthouse/lbryum; git fetch origin; git checkout $lbryum_tag)
 (cd lbryum-server/lbryum-server; git fetch origin; git checkout origin/master)
 (cd lighthouse/lighthouse; git fetch origin; git checkout origin/master)
-(cd lighthouse/lbryum; git fetch origin; git checkout origin/master)
